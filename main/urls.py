@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import home, tools,quiz_generator,learning_guide_generator,generate_learning_guide, question_generator,generate_questions,generate_stream, lesson_plan_generator, generate_lesson_plan,creativeIdeas_generator,generate_creative_ideas, realWorldExamples_generator,generate_realworld_examples
+from .views import home, tools,quiz_generator,followup_chat,learning_guide_generator,generate_learning_guide, question_generator,generate_questions,generate_stream, lesson_plan_generator, generate_lesson_plan,creativeIdeas_generator,generate_creative_ideas, realWorldExamples_generator,generate_realworld_examples
 
 urlpatterns = [
     path("", home, name="home"),
@@ -25,5 +25,7 @@ urlpatterns = [
 
     path("tools/learning-guide/", learning_guide_generator, name="learning_guide_generator"),
     
-    path("tools/learning-guide/generate/", generate_learning_guide, name="learning_guide_generator")
+    path("tools/learning-guide/generate/", generate_learning_guide, name="learning_guide_generator"),
+    path("chat_followup/", followup_chat, name="followup_chat")
+
 ]

@@ -1,6 +1,7 @@
 from django.shortcuts import render
-from .prompt_generation import stream_quiz,stream_questions, stream_learning_guide, stream_lesson_plan,stream_creative_ideas, stream_realworld_examples
+from .prompt_generation import stream_quiz,stream_questions, stream_followup_response, stream_learning_guide, stream_lesson_plan,stream_creative_ideas, stream_realworld_examples
 from django.http import JsonResponse
+import json
 
 def home(request):
     return render(request, "home.html")
@@ -137,5 +138,17 @@ def generate_learning_guide(request):
         topic = data.get('topic')
 
         return stream_learning_guide(grade, topic)
+    else:
+        return JsonResponse({'error': 'POST method required.'}, status=400)
+
+def followup_chat(request):
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        history = data.get('history')
+        message = data.get('user_message')
+
+        # 🔁 Return a streamed response
+        return stream_followup_response(history, message)
+        
     else:
         return JsonResponse({'error': 'POST method required.'}, status=400)

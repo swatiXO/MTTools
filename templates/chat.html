@@ -25,50 +25,105 @@
 
 
 <script>
-    
 document.addEventListener("DOMContentLoaded", () => {
+
     const chatContainer = document.getElementById("chatContainer");
     const chatInput = document.getElementById("chatMessage");
     const sendBtn = document.getElementById("sendBtn");
 
-    // Function to add a user message
-    function addUserMessage(message) {
-        const userMsg = document.createElement("div");
-        userMsg.className = "userMsg p-2 mb-2";
-        userMsg.style.cssText = "background:#e6ffe6; border-radius:8px; max-width:80%; margin-left:auto;";
-        userMsg.innerText = message;
-        chatContainer.appendChild(userMsg);
-        chatContainer.scrollTop = chatContainer.scrollHeight; // Scroll to bottom
+    let conversationHistory = [];
+
+    // ===============================
+    // Helper: CSRF Token
+    // ===============================
+    function getCSRFToken() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? match[1] : '';
     }
 
-    // Handle send button click
-    sendBtn.addEventListener("click", () => {
-        const msg = chatInput.value.trim();
-        if (!msg) return;
+    // ===============================
+    // Helper: Add User Message
+    // ===============================
+    function addUserMessage(message) {
+        const div = document.createElement("div");
+        div.className = "userMsg p-2 mb-2";
+        div.style.cssText =
+            "background:#e6ffe6; border-radius:8px; max-width:80%; margin-left:auto;";
+        div.innerText = message;
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
 
-        addUserMessage(msg);
+    // ===============================
+    // Helper: Add Bot Placeholder
+    // ===============================
+    function addBotPlaceholder() {
+        const div = document.createElement("div");
+        div.className = "botMsg p-2 mb-2";
+        div.style.cssText =
+            "background:#f1f0ff; border-radius:8px; max-width:80%; white-space:pre-wrap;";
+        div.innerText = "...";
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        return div;
+    }
+
+    // ===============================
+    // MAIN: Send Message
+    // ===============================
+    sendBtn.addEventListener("click", async () => {
+
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        addUserMessage(message);
         chatInput.value = "";
 
-        // Optional: add a placeholder bot message
-        const botMsg = document.createElement("div");
-        botMsg.className = "botMsg p-2 mb-2";
-        botMsg.style.cssText = "background:#f1f0ff; border-radius:8px; max-width:80%;";
-        botMsg.innerText = "Bot is typing...";
-        chatContainer.appendChild(botMsg);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        const botMsg = addBotPlaceholder();
 
-        // Simulate bot response after 1s (replace with LLM streaming later)
-        setTimeout(() => {
-            botMsg.innerText = "This is a response from the bot.";
-        }, 1000);
+        // ===========================
+        // SEND TO /chat_followup/
+        // ===========================
+        const response = await fetch('/chat_followup/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({
+                history: conversationHistory,
+                user_message: message,
+            }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullText = "";
+
+        // STREAM
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            fullText += chunk;
+
+            botMsg.innerHTML = marked.parse(fullText);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Update conversation
+        conversationHistory.push({ role: "user", content: message });
+        conversationHistory.push({ role: "assistant", content: fullText });
     });
 
-    // Optional: allow Enter key to send
+    // ENTER key support
     chatInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
             sendBtn.click();
             e.preventDefault();
         }
     });
+
 });
 </script>
