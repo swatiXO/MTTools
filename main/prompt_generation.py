@@ -374,12 +374,12 @@ def stream_followup_response(history, message):
     reset_context()
 
     system_prompt = (
-        "You are an AI tutor answering questions about a generated quiz. "
+        "You are an Educational and friendly tutor answering followup questions. "
         "Be direct, educational, and concise. If a question is unrelated, mention it politely."
     )
 
     user_prompt = f"""
-Quiz & Chat History:
+Chat History:
 {history}
 
 User's new question:

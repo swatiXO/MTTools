@@ -78,9 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         addUserMessage(message);
         chatInput.value = "";
-
-        const botMsg = addBotPlaceholder();
-
+        const botMsg = addBotPlaceholder()
+        const originalResponse = document.getElementById("initialResponse")
+        conversationHistory.push({ role: "assistant", content: originalResponse });
+        console.log(conversationHistory)
         // ===========================
         // SEND TO /chat_followup/
         // ===========================

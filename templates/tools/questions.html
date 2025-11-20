@@ -102,6 +102,7 @@ document.getElementById("generateBtn").addEventListener("click", async (e) => {
     // Add initial bot message
     const botMsg = document.createElement("div");
     botMsg.className = "botMsg p-2 mb-2";
+        botMsg.id = "initialResponse"
     botMsg.style.cssText = "background:#f1f0ff; border-radius:8px; max-width:80%;";
     botMsg.innerText = "Generating your Questions...";
     chatContainer.appendChild(botMsg);
