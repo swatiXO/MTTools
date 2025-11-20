@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Learning Guide Generator{% endblock %}
+{% block nav_tools %}active{% endblock %}
+
+{% block content %}
+
+<!-- ============================= -->
+<!-- QUIZ FORM INSIDE ACCORDION    -->
+<!-- ============================= -->
+
+<div class="accordion mb-3" id="promptAccordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button fw-semibold" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#promptBody">
+                Prompt Editor
+            </button>
+        </h2>
+        <div id="promptBody" class="accordion-collapse collapse show">
+            <div class="accordion-body">
+
+                <!-- Form -->
+                <div id="collapsibleForm">
+                    <form id="learningGuideForm">
+                        {% csrf_token %}
+
+                        <!-- Grade Level -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Grade level: *</label>
+                            <select class="form-select input-field" name="grade" required>
+                                <option>Grade 1</option><option>Grade 2</option>
+                                <option>Grade 3</option><option>Grade 4</option>
+                                <option>Grade 5</option><option>Grade 6</option>
+                                <option>Grade 7</option><option>Grade 8</option>
+                                <option>Grade 9</option><option>Grade 10</option>
+                                <option>Grade 11</option><option>Grade 12</option>
+                            </select>
+                        </div>
+
+                        <!-- Topic -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Topic: *</label>
+                            <textarea class="form-control input-textarea" rows="1" name="topic"
+                                      placeholder="Topic / Subject"></textarea>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button id="generateBtn" class="btn btn-primary px-4" type="button">Generate</button>
+                            <button class="btn btn-outline-secondary px-4" type="button">Web Search</button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% include "chat.html" with initial_bot_msg="Generating Your Learning Guide" %}
+<!-- ============================= -->
+<!-- JAVASCRIPT                    -->
+<!-- ============================= -->
+<script>
+document.getElementById("generateBtn").addEventListener("click", async (e) => {
+
+    // Collapse the accordion smoothly
+    const promptCollapse = document.getElementById("promptBody");
+    const bsCollapse = bootstrap.Collapse.getOrCreateInstance(promptCollapse);
+    bsCollapse.hide();
+
+    // Show chat section
+    const chatSection = document.getElementById("chat-section");
+    if (chatSection) chatSection.style.display = "block";
+
+    // Clear previous chat (optional)
+    const chatContainer = document.getElementById("chatContainer");
+    chatContainer.innerHTML = "";
+
+    // Add initial bot message
+    const botMsg = document.createElement("div");
+    botMsg.className = "botMsg p-2 mb-2";
+    botMsg.style.cssText = "background:#f1f0ff; border-radius:8px; max-width:80%;";
+    botMsg.innerText = "Generating your creative thoughts...";
+    chatContainer.appendChild(botMsg);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    // Collect form data
+    const form = document.getElementById("learningGuideForm");
+    const formData = new FormData(form);
+
+    // -----------------------------------------
+    // Call backend endpoint that streams LLM tokens
+    // -----------------------------------------
+    const response = await fetch("/tools/learning-guide/generate/", {
+        method: "POST",
+        body: formData
+    });
+
+    if (!response.body) return;
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode the token chunk
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        botMsg.innerHTML = marked.parse(fullText);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // Optionally, after streaming is done, you could allow further user interactions
+});
+
+</script>
+
+{% endblock %}
+

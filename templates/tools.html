@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Tools{% endblock %}
+{% block nav_tools %}active{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 fw-bold">Tools Dashboard</h2>
+
+<!-- ====================== -->
+<!-- TEACHER TOOLS SECTION -->
+<!-- ====================== -->
+<h3 class="fw-bold mt-4">Tools for Teachers</h3>
+<div class="row g-4 mt-1">
+
+    {% for tool in tools %}
+        {% if tool.category == "teacher" %}
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <a href="{{ tool.url }}" class="tool-card text-decoration-none">
+                <div class="card shadow-sm h-100 p-3 tool-card-body">
+                    <div class="tool-icon mb-3">
+                        <i class="bi {{ tool.icon }}"></i>
+                    </div>
+
+                    <h5 class="fw-semibold">{{ tool.title }}</h5>
+                    <p class="text-muted small mb-0">
+                        {{ tool.desc }}
+                    </p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+</div>
+
+<!-- ====================== -->
+<!-- STUDENT TOOLS SECTION -->
+<!-- ====================== -->
+<h3 class="fw-bold mt-5">Tools for Students</h3>
+<div class="row g-4 mt-1">
+
+    {% for tool in tools %}
+        {% if tool.category == "student" %}
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <a href="{{ tool.url }}" class="tool-card text-decoration-none">
+                <div class="card shadow-sm h-100 p-3 tool-card-body">
+                    <div class="tool-icon mb-3">
+                        <i class="bi {{ tool.icon }}"></i>
+                    </div>
+
+                    <h5 class="fw-semibold">{{ tool.title }}</h5>
+                    <p class="text-muted small mb-0">
+                        {{ tool.desc }}
+                    </p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+</div>
+
+{% endblock %}

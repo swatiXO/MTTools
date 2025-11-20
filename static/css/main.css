@@ -1,0 +1,81 @@
+body {
+    background: #f8f9fa;
+    font-family: Arial, sans-serif;
+}
+
+.content-wrapper {
+    padding-top: 30px;
+    padding-bottom: 30px;
+}
+
+.navbar-brand {
+    font-weight: 600;
+}
+
+.footer {
+    margin-top: 40px;
+    padding: 20px 0;
+    background: #f1f1f1;
+    text-align: center;
+    color: #666;
+}
+/* Dashboard Cards */
+.tool-card .card {
+    border-radius: 16px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    background: #ffffff;
+}
+
+.tool-card .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+
+.tool-card-body {
+    border-radius: 16px;
+}
+
+.tool-icon i {
+    font-size: 32px;
+    color: #6c63ff; /* Purple-like highlight (you can change) */
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+    .tool-icon i {
+        font-size: 28px;
+    }
+}
+.tool-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.tool-card {
+    border-radius: 16px;
+    background: #fff;
+}
+
+.input-field {
+    padding: 10px 14px;
+    border-radius: 10px;
+}
+
+.input-textarea {
+    border-radius: 10px;
+    resize: vertical;
+}
+
+.text-purple {
+    color: #6c63ff !important;
+}
+
+.btn-primary {
+    background-color: #6c63ff;
+    border: none;
+    border-radius: 10px;
+}
+
+.btn-outline-secondary {
+    border-radius: 10px;
+}

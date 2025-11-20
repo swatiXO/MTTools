@@ -1,0 +1,74 @@
+<!-- chat_section.html -->
+<div id="chat-section" class="mt-4" style="display:none;">
+
+    <!-- Chat container -->
+    <div id="chatContainer" class="p-3 shadow-sm mb-3"
+         style="background:white; border-radius:12px; min-height:250px; max-height:500px; overflow-y:auto;">
+
+        {% if initial_bot_msg %}
+        <!-- Initial bot message passed from parent template -->
+        <div class="botMsg p-2 mb-2" style="background:#f1f0ff; border-radius:8px; max-width:80%;">
+            {{ initial_bot_msg|safe }}
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Chat input -->
+    <div class="d-flex gap-2">
+        <input type="text" id="chatMessage" class="form-control" placeholder="Send a message">
+        <button id="sendBtn" class="btn btn-primary">Send</button>
+    </div>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+
+<script>
+    
+document.addEventListener("DOMContentLoaded", () => {
+    const chatContainer = document.getElementById("chatContainer");
+    const chatInput = document.getElementById("chatMessage");
+    const sendBtn = document.getElementById("sendBtn");
+
+    // Function to add a user message
+    function addUserMessage(message) {
+        const userMsg = document.createElement("div");
+        userMsg.className = "userMsg p-2 mb-2";
+        userMsg.style.cssText = "background:#e6ffe6; border-radius:8px; max-width:80%; margin-left:auto;";
+        userMsg.innerText = message;
+        chatContainer.appendChild(userMsg);
+        chatContainer.scrollTop = chatContainer.scrollHeight; // Scroll to bottom
+    }
+
+    // Handle send button click
+    sendBtn.addEventListener("click", () => {
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+
+        addUserMessage(msg);
+        chatInput.value = "";
+
+        // Optional: add a placeholder bot message
+        const botMsg = document.createElement("div");
+        botMsg.className = "botMsg p-2 mb-2";
+        botMsg.style.cssText = "background:#f1f0ff; border-radius:8px; max-width:80%;";
+        botMsg.innerText = "Bot is typing...";
+        chatContainer.appendChild(botMsg);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Simulate bot response after 1s (replace with LLM streaming later)
+        setTimeout(() => {
+            botMsg.innerText = "This is a response from the bot.";
+        }, 1000);
+    });
+
+    // Optional: allow Enter key to send
+    chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            sendBtn.click();
+            e.preventDefault();
+        }
+    });
+});
+</script>
