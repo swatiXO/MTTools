@@ -1,7 +1,8 @@
 from django.shortcuts import render
-from .prompt_generation import stream_quiz,stream_questions, stream_followup_response, stream_learning_guide, stream_lesson_plan,stream_creative_ideas, stream_realworld_examples
-from django.http import JsonResponse
+from .prompt_generation import generate_preview, stream_chat_doc_response, stream_quiz,stream_questions, stream_followup_response, stream_learning_guide, stream_lesson_plan,stream_creative_ideas, stream_realworld_examples
+from django.http import JsonResponse, StreamingHttpResponse
 import json
+from .utils.vectorStoreManager import ChatVectorManager
 
 def home(request):
     return render(request, "home.html")
@@ -52,6 +53,13 @@ def tools(request):
             "url": "/tools/learning-guide/",
             "category":"student"
         },    
+            {
+            "title": "Chat With Docs",
+            "desc": "Upload a document and use our AI assistant to help answer your queries",
+            "icon": "bi-chat",
+            "url": "/tools/chat-with-docs/",
+            "category":"student"
+        },  
     
     ]
 
@@ -60,6 +68,8 @@ def tools(request):
 def quiz_generator(request):
     return render(request, "tools/quiz.html")
 
+def chat_with_docs(request):
+    return render(request, "tools/chatwithdocs.html")
 def learning_guide_generator(request):
     return render(request, "tools/learningGuide.html")
 def question_generator(request):
@@ -141,14 +151,74 @@ def generate_learning_guide(request):
     else:
         return JsonResponse({'error': 'POST method required.'}, status=400)
 
+
+def update_chat_history(request):
+    print("Trying to update chat history")
+    data = json.loads(request.body.decode('utf-8'))
+    session_key = request.session.session_key
+    history = data.get('history')
+    message = data.get('user_message')
+    vec = ChatVectorManager(chat_id=f"chat_{session_key}")
+    for msg in history:
+        role = msg.get('role')
+        text = msg.get('content')
+        vec.add_message(role, text)
+        print("Added message: ", text)
+    vec.add_message("user",message)
+    return JsonResponse({"Success: ": "Updated Chat History"},status =200)
+
 def followup_chat(request):
     if request.method == 'POST':
+        update_chat_history(request)
         data = json.loads(request.body.decode('utf-8'))
         history = data.get('history')
+        session_key = request.session.session_key
         message = data.get('user_message')
-
+        vec = ChatVectorManager(chat_id=f"chat_{session_key}")
+        similar = vec.search(message, top_k = 5)
         # 🔁 Return a streamed response
-        return stream_followup_response(history, message)
+        retrieved_context = "\n".join(
+            [f"{msg['role'].upper()}: {msg['text']}" for msg in similar]
+        )
+            # 🔁 Return a streamed response
+        return stream_followup_response(retrieved_context, message)
         
     else:
         return JsonResponse({'error': 'POST method required.'}, status=400)
+    
+
+
+from .models import Document
+from .utils.embeddings import EmbeddingManager
+
+def stream_chat_with_doc(request):
+    if request.method == "POST":
+        data = json.loads(request.body.decode('utf-8'))
+        print(data.get("user_message"))
+        user_message = data.get("user_message", "")
+        doc_id = data.get("doc_id")
+        print(doc_id,user_message)
+        if not(user_message or doc_id):
+            return JsonResponse({"ERROR": "Missing message or doc_id"},status = 400)
+        # doc_text = ""
+        try:
+            document = Document.objects.get(id=doc_id)
+            # doc_text = extract_text_from_file(doc.file.path)
+        except Document.DoesNotExist:
+            return JsonResponse({"error": "Document not found"}, status=404)
+            # doc_text = request.session.get('extracted_text',"")
+        manager = EmbeddingManager(storage_key=document.storage_key)
+        try:
+            manager.load_or_build(document.extracted_text)
+        except Exception as e:
+            print("Embedding load/build error:", e)
+            return JsonResponse({"status": "indexing_in_progress"}, status=202)
+
+        return stream_chat_doc_response(request,document, user_message)
+
+
+def generate_preview_with_doc(request):
+    if request.method == "POST":
+        doc_text = request.POST.get("doc_text", "")
+
+        return generate_preview(request, request.session.get('extracted_text'))

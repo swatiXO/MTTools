@@ -12,6 +12,14 @@
         </div>
         {% endif %}
 
+        {% if rag_mode %}
+        <!-- if it is rag mode, shift url -->
+        <div id="chat_mode" style="display: none;">
+            true
+            {{ rag_mode|safe }}
+        </div>
+        {% endif %}
+
     </div>
 
     <!-- Chat input -->
@@ -73,6 +81,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===============================
     sendBtn.addEventListener("click", async () => {
 
+        // Determine fetch URL dynamically
+    const pageTypeEl = document.getElementById("page-type");
+    let chatUrl = '/chat_followup/'; // default
+if (pageTypeEl) {
+    const pageType = pageTypeEl.dataset.page;
+    if (pageType === "chat_with_docs") {
+        chatUrl = '/chat_with_docs_followup/';
+    }
+}
+
+
         const message = chatInput.value.trim();
         if (!message) return;
 
@@ -80,12 +99,21 @@ document.addEventListener("DOMContentLoaded", () => {
         chatInput.value = "";
         const botMsg = addBotPlaceholder()
         const originalResponse = document.getElementById("initialResponse")
-        conversationHistory.push({ role: "assistant", content: originalResponse });
+        if (conversationHistory.length===0){
+
+            conversationHistory.push({ role: "assistant", content: originalResponse.innerText });
+        
+        }
         console.log(conversationHistory)
         // ===========================
         // SEND TO /chat_followup/
         // ===========================
-        const response = await fetch('/chat_followup/', {
+        const chat_mode = document.getElementById("chat_mode")
+        const docId = localStorage.getItem("doc_id");
+        console.log(docId)
+        console.log(message)
+        // console.log(chat_mode.innerText)
+        const response = await fetch(chatUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -94,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
             body: JSON.stringify({
                 history: conversationHistory,
                 user_message: message,
+                doc_id: docId
             }),
         });
 
@@ -112,9 +141,8 @@ document.addEventListener("DOMContentLoaded", () => {
             botMsg.innerHTML = marked.parse(fullText);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
-
+        conversationHistory=[]
         // Update conversation
-        conversationHistory.push({ role: "user", content: message });
         conversationHistory.push({ role: "assistant", content: fullText });
     });
 

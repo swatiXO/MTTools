@@ -386,3 +386,114 @@ User's new question:
 {message}
 """
     return stream_llm_response(system_prompt, user_prompt, max_tokens=800, temperature=0.9)
+
+import time
+from .utils.embeddings import EmbeddingManager
+from .utils.vectorStoreManager import ChatVectorManager
+# -------------------------------------------------------------------
+# 📄 Generate Markdown Preview of Document
+# -------------------------------------------------------------------
+def generate_preview(request, document_text: str, max_tokens: int = 800):
+    """
+    Generate a concise markdown preview of the uploaded document using Llama 3.1 8B (Ollama).
+    Also initializes chat memory for this document/session.
+    """
+    start_time = time.time()
+
+    if len(document_text) <= max_tokens * 2:
+        context = document_text
+    else:
+        start = document_text[:max_tokens]
+        end = document_text[-max_tokens:]
+        context = f"{start}\n\n...[middle content omitted]...\n\n{end}"
+
+    system_prompt = (
+        "You are an AI assistant that generates concise markdown previews of documents. "
+        "Focus on preserving real headings and subheadings, summarizing key points briefly. "
+        "Avoid adding new information or speculation."
+    )
+
+    user_prompt = f"""
+
+
+Here is a portion of the document:
+{context}
+
+Generate a short markdown preview using:
+- **bold** for section titles
+- bullet points under each heading
+- a single paragraph summary at the end
+"""
+
+    session_key = request.session.session_key or str(time.time())
+    doc_id = request.session["docId"]
+    chat_store = ChatVectorManager(chat_id=f"chat_{session_key}_{doc_id}")
+    return stream_llm_response(system_prompt, user_prompt)
+
+
+# -------------------------------------------------------------------
+# 🧩 Retrieve Combined Context (Document + Chat)
+# -------------------------------------------------------------------
+def retrieve_context(document, user_prompt, chat_id, doc_top_k=3, chat_top_k=3):
+    """
+    Retrieve relevant document chunks and chat history messages for a given query.
+    Returns a combined string of document and chat context.
+    """
+    # Document retrieval
+    doc_manager = EmbeddingManager(document.storage_key)
+    doc_manager.load_or_build(document.extracted_text)
+    doc_chunks = doc_manager.retrieve(user_prompt, top_k=doc_top_k)
+    doc_context = "\n\n".join(doc_chunks)
+
+    # Chat retrieval
+    chat_store = ChatVectorManager(chat_id=f"{chat_id}")
+    chat_store.add_message("user", user_prompt)
+    past_chats = chat_store.search(user_prompt, top_k=chat_top_k)
+    chat_context = "\n".join(
+        [f"{m['role'].capitalize()}: {m['text']}" for m in past_chats]
+    )
+
+    combined_context = ""
+    if chat_context:
+        combined_context += f"\n\nChat History:\n{chat_context}\n\n"
+    if doc_context:
+        combined_context += f"\n\nDocument Context:\n{doc_context}\n\n"
+    num_tokens = len(combined_context) // 4
+    print(f"[LOG] Total tokens in combined context (approx.): {num_tokens}")      
+    return combined_context
+
+
+# -------------------------------------------------------------------
+# ⚡ Streaming Chat Response (uses retrieval + memory)
+# -------------------------------------------------------------------
+def stream_chat_doc_response(request, document, user_prompt, max_tokens=300):
+    """
+    Stream Ollama response using FAISS-retrieved document context
+    and session-based chat memory.
+    """
+    start_time = time.time()
+    session_key = request.session.session_key or str(time.time())
+    doc_id = request.session["docId"]
+    chat_id = f"chat_{session_key}_{doc_id}"
+
+    # Retrieve combined context
+    combined_context = retrieve_context(document, user_prompt, chat_id)
+
+    system_prompt = (
+        "You are an AI assistant providing accurate and concise responses based on both "
+        "the document context and relevant prior conversation history. "
+        "Do not repeat the question, add commentary, or hallucinate. "
+        "Answer clearly and factually."
+        "If explaining something, refer to examples from the document context and relate."
+        "Add headings, notes and facts to support your explanations."
+    )
+
+    user_final_prompt = f"""
+
+Chat And Document Context:
+{combined_context}
+
+User question:
+{user_prompt}
+"""
+    return stream_llm_response(system_prompt, user_final_prompt)

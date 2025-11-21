@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import home, tools,quiz_generator,followup_chat,learning_guide_generator,generate_learning_guide, question_generator,generate_questions,generate_stream, lesson_plan_generator, generate_lesson_plan,creativeIdeas_generator,generate_creative_ideas, realWorldExamples_generator,generate_realworld_examples
-
+from .views import chat_with_docs, generate_preview_with_doc, home, stream_chat_with_doc, tools,quiz_generator,followup_chat,learning_guide_generator,generate_learning_guide, question_generator,generate_questions,generate_stream, lesson_plan_generator, generate_lesson_plan,creativeIdeas_generator,generate_creative_ideas, realWorldExamples_generator,generate_realworld_examples
+from .utils.documentUtils import upload_document
 urlpatterns = [
     path("", home, name="home"),
     path("tools/", tools, name="tools"),
@@ -26,6 +26,11 @@ urlpatterns = [
     path("tools/learning-guide/", learning_guide_generator, name="learning_guide_generator"),
     
     path("tools/learning-guide/generate/", generate_learning_guide, name="learning_guide_generator"),
-    path("chat_followup/", followup_chat, name="followup_chat")
+    path("chat_followup/", followup_chat, name="followup_chat"),
+
+    path("tools/chat-with-docs/", chat_with_docs, name="chat_with_docs"),
+    path("tools/chat-with-docs/upload/", upload_document, name="upload_chat_with_docs"),
+    path("tools/chat-with-docs/generate_preview/", generate_preview_with_doc, name="chat_with_docs"),
+    path("chat_with_docs_followup/", stream_chat_with_doc, name="chat_with_docs"),
 
 ]

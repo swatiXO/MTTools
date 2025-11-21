@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with Docs{% endblock %}
+{% block nav_tools %}active{% endblock %}
+
+{% block content %}
+
+<!-- ============================= -->
+<!-- QUIZ FORM INSIDE ACCORDION    -->
+<!-- ============================= -->
+<div id="page-type" data-page="chat_with_docs" style="display:none;">hello</div>
+<div class="accordion mb-3" id="promptAccordion">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button fw-semibold" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#promptBody">
+                Prompt Editor
+            </button>
+        </h2>
+        <div id="promptBody" class="accordion-collapse collapse show">
+            <div class="accordion-body">
+                
+                <!-- Form -->
+                <div id="collapsibleForm">
+                    <form id="uploadForm">
+                        {% csrf_token %}
+
+                        <!-- Grade Level -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Grade level: *</label>
+                            <select class="form-select input-field" name="grade" required>
+                                <option>Grade 1</option><option>Grade 2</option>
+                                <option>Grade 3</option><option>Grade 4</option>
+                                <option>Grade 5</option><option>Grade 6</option>
+                                <option>Grade 7</option><option>Grade 8</option>
+                                <option>Grade 9</option><option>Grade 10</option>
+                                <option>Grade 11</option><option>Grade 12</option>
+                            </select>
+                        </div>
+
+                        <!-- Topic -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Title: *</label>
+                            <textarea class="form-control input-textarea" rows="1" name="title"
+                                      placeholder="Title"></textarea>
+                        </div>
+
+                                                <!-- File -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">File: *</label>
+                            <input type="file" name="file" required id="id_file">
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button id="generateBtn" class="btn btn-primary px-4" type="button">Generate</button>
+                            <button class="btn btn-outline-secondary px-4" type="button">Web Search</button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% include "chat.html" with rag_mode=true %}
+<!-- ============================= -->
+<!-- JAVASCRIPT                    -->
+<!-- ============================= -->
+<script>
+document.getElementById("generateBtn").addEventListener("click", async (e) => {
+
+    // Collapse the accordion smoothly
+    const promptCollapse = document.getElementById("promptBody");
+    const bsCollapse = bootstrap.Collapse.getOrCreateInstance(promptCollapse);
+    bsCollapse.hide();
+
+    // Show chat section
+    const chatSection = document.getElementById("chat-section");
+    if (chatSection) chatSection.style.display = "block";
+
+    // Clear previous chat (optional)
+    const chatContainer = document.getElementById("chatContainer");
+    chatContainer.innerHTML = "";
+
+    // Add initial bot message
+    const botMsg = document.createElement("div");
+    botMsg.className = "botMsg p-2 mb-2";
+        botMsg.id = "initialResponse"
+    botMsg.style.cssText = "background:#f1f0ff; border-radius:8px; max-width:80%;";
+    botMsg.innerText = "Generating your preview ...";
+    chatContainer.appendChild(botMsg);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    // Collect form data
+    const form = document.getElementById("uploadForm");
+    const formData = new FormData(form);
+
+    // -----------------------------------------
+    // Call backend endpoint that streams LLM tokens
+    // -----------------------------------------
+    const uploadResponse = await fetch("/tools/chat-with-docs/upload/", {
+        method: "POST",
+        body: formData
+    });
+     if (!uploadResponse.ok){ 
+            alert("Upload failed!");
+            return;
+        }
+        const data = await uploadResponse.json();
+    if(data.success){
+            localStorage.setItem("doc_id", data.doc_id);
+            console.log("Uploaded Document ID: ",data.doc_id);
+    }
+    const response = await fetch("/tools/chat-with-docs/generate_preview/", {
+        method: "POST",
+        body: formData
+    });
+
+    if (!response.body) return;
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode the token chunk
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        botMsg.innerHTML = marked.parse(fullText);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // Optionally, after streaming is done, you could allow further user interactions
+});
+
+</script>
+
+{% endblock %}
+
